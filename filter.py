@@ -63,7 +63,7 @@ class CocoFilter():
                 quit()
 
         self.new_category_map = dict()
-        new_id = 0
+        new_id = 1
         for key, item in self.categories.items():
             if item['name'] in self.filter_categories:
                 self.new_category_map[key] = new_id
