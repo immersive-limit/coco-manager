@@ -4,6 +4,9 @@ from pathlib import Path
 class CocoFilter():
     """ Filters the COCO dataset
     """
+    def __init__(self, use_coco_categories=False):
+        self.use_coco_categories = use_coco_categories
+        
     def _process_info(self):
         self.info = self.coco['info']
         
@@ -14,7 +17,6 @@ class CocoFilter():
         self.categories = dict()
         self.super_categories = dict()
         self.category_set = set()
-
         for category in self.coco['categories']:
             cat_id = category['id']
             super_category = category['supercategory']
@@ -48,6 +50,22 @@ class CocoFilter():
             if image_id not in self.segmentations:
                 self.segmentations[image_id] = []
             self.segmentations[image_id].append(segmentation)
+ 
+    def _use_old_categories(self):
+        """ Use the category id same as in COCO dataset for filtered categories.
+        """
+        for key, item in self.categories.items():
+            if item['name'] in self.filter_categories:
+                self.new_category_map[key] = key
+    
+    def _use_new_categories(self):
+        """ Use new ids to for filtered categories.
+        """
+        new_id = 1
+        for key, item in self.categories.items():
+            if item['name'] in self.filter_categories:
+                self.new_category_map[key] = new_id
+                new_id += 1
 
     def _filter_categories(self):
         """ Find category ids matching args
@@ -63,11 +81,12 @@ class CocoFilter():
                 quit()
 
         self.new_category_map = dict()
-        new_id = 1
-        for key, item in self.categories.items():
-            if item['name'] in self.filter_categories:
-                self.new_category_map[key] = new_id
-                new_id += 1
+        if self.use_coco_categories:
+            print('Using category id from COCO.')
+            self._use_old_categories()
+        else:
+            print('Using new category ids.')
+            self._use_new_categories()
 
         self.new_categories = []
         for original_cat_id, new_id in self.new_category_map.items():
@@ -164,8 +183,9 @@ if __name__ == "__main__":
         help="path to save the output json")
     parser.add_argument("-c", "--categories", nargs='+', dest="categories",
         help="List of category names separated by spaces, e.g. -c person dog bicycle")
-
+    parser.add_argument("--old-cat", action='store_true', dest='use_coco_categories',
+        help="Option to use category id same as COCO dataset for filtered categories.")
     args = parser.parse_args()
 
-    cf = CocoFilter()
+    cf = CocoFilter(use_coco_categories=args.use_coco_categories)
     cf.main(args)
